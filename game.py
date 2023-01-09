@@ -5,6 +5,7 @@ import random
 import time
 import math
 from threading import *
+from numba import jit
 time_atack = 1
 c1 = 1
 right = True
@@ -52,7 +53,7 @@ def improvement_add(name):
         player.shield += 1
     elif name == "Молния стреляет в случайного врага":
         MYEVENTTYPE_2 = pygame.USEREVENT + 1
-        pygame.time.set_timer(MYEVENTTYPE_2, 2000)
+        pygame.time.set_timer(MYEVENTTYPE_2, 2500)
         atack_2 = pygame.sprite.Group()
         Atack_2(atack_2)
         atack_list.append([MYEVENTTYPE_2, 2, atack_2])
@@ -69,7 +70,7 @@ class Improvement_btn(pygame.sprite.Sprite):
         self.name = name
 
 
-def move(group, speed, size):
+def move(group, speed, size, player):
     for i in group:
         if pygame.sprite.collide_rect(i, player):
             if i.timer <= 0:
@@ -79,19 +80,25 @@ def move(group, speed, size):
         x = size[0] // 2 - i.rect.x
         y = size[1] // 2 - i.rect.y
         if x > 0:
-            i.image = pygame.transform.rotate(pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)), 360)
+            i.image = pygame.transform.rotate(
+                pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)), 360)
             i.rect.x = math.ceil(float(i.rect.x) + speed)
         elif x < 0:
-            i.image = pygame.transform.rotate(pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)),
-                                              180)
+            i.image = pygame.transform.rotate(
+                pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)),
+                180)
             i.rect.x -= speed
         if y > 0:
             i.rect.y = math.ceil(float(i.rect.y) + speed)
-            i.image = pygame.transform.rotate(pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)),
-                                              260)
+            if not x > 0 and not x < 0:
+                i.image = pygame.transform.rotate(
+                    pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)),
+                    260)
         elif y < 0:
-            i.image = pygame.transform.rotate(pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)),
-                                              90)
+            if not x > 0 and not x < 0:
+                i.image = pygame.transform.rotate(
+                    pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60)),
+                    90)
             i.rect.y -= speed
 
 
@@ -142,17 +149,23 @@ class Object(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, *group):
+    def __init__(self, *group, damage, life):
         #pygame.sprite.Sprite.__init__(self)
         super().__init__(*group)
         self.image = pygame.transform.scale(pygame.image.load("data/zombie2.png"), (60, 60))
         self.rect = self.image.get_rect()
         self.size = self.image.get_size()
-        self.rect.x = float(random.randrange(1000))
-        self.rect.y = float(random.randrange(1000))
+        x = [[size[0], size[0] + 200], [- 200, 0]]
+        y = [[size[1], size[1] + 200], [- 200, 0]]
+        x2 = random.choice(x)
+        y2 = random.choice(y)
+        print(x2)
+        print(y2)
+        self.rect.x = float(random.randint(x2[0], x2[1]))
+        self.rect.y = float(random.randint(y2[0], y2[1]))
         self.timer = 0
-        self.life_enemy = 2
-        self.damage = 4
+        self.life_enemy = life
+        self.damage = damage
 
     def update(self, key, speed):
         if key[pygame.K_UP]:
@@ -168,7 +181,7 @@ class Enemy(pygame.sprite.Sprite):
 class Atack(pygame.sprite.Sprite):
     def __init__(self, *group):
         super().__init__(*group)
-        self.image = pygame.Surface((50, 20))
+        self.image = pygame.Surface((80, 20))
         self.rect = self.image.get_rect()
         self.size = self.image.get_size()
         self.rect.x = size[0] // 2 + 20
@@ -176,25 +189,24 @@ class Atack(pygame.sprite.Sprite):
         self.damage = 1
         self.kd = 1
 
-    def update(self, id):
-        if id == self.kd:
-            if right:
-                for i in atack:
-                    i.rect.x = size[0] // 2 + 20
-            else:
-                for i in atack:
-                    i.rect.x = size[0] // 2 - 50
-            for i in enemy_1:
-                for t in atack:
-                    if pygame.sprite.collide_rect(i, t):
-                        i.life_enemy -= t.damage + damage_k
-                        if i.life_enemy <= 0:
-                            Experience(experience_1, coords=[i.rect.x, i.rect.y])
-                            i.kill()
-                        elif right:
-                            i.rect.x += 10
-                        else:
-                            i.rect.x -= 10
+    def update(self):
+        if right:
+            for i in atack:
+                i.rect.x = size[0] // 2 + 20
+        else:
+            for i in atack:
+                i.rect.x = size[0] // 2 - 75
+        for i in enemy_1:
+            for t in atack:
+                if pygame.sprite.collide_rect(i, t):
+                    i.life_enemy -= t.damage + damage_k
+                    if i.life_enemy <= 0:
+                        Experience(experience_1, coords=[i.rect.x, i.rect.y])
+                        i.kill()
+                    elif right:
+                        i.rect.x += 10
+                    else:
+                        i.rect.x -= 10
 
 
 class Atack_2(pygame.sprite.Sprite):
@@ -209,7 +221,7 @@ class Atack_2(pygame.sprite.Sprite):
         self.rect.y = 0
         self.damage = 2
 
-    def update(self, id):
+    def update(self):
         c = [i for i in enemy_1 if i.rect.x in range(0, size[0]) and i.rect.y in range(0, size[1])]
         if c:
             enemy = random.choice(c)
@@ -252,6 +264,10 @@ class Region(pygame.sprite.Sprite):
         self.rect.y = size[1] // 2
 
 
+def k():
+    move_t = Thread(target=move, args=(enemy_1, 0.1, size, player))
+    move_t.start()
+
 if __name__ == '__main__':
     pygame.display.set_caption('Игра')
     #screen = pygame.display.set_mode((0, 0), pygame.RESIZABLE)
@@ -273,12 +289,16 @@ if __name__ == '__main__':
     region.add(region_1)
     experience_status = 0
     experience_status_max = 30
+    count_enemy = 3
+    damage_enemy = 1
+    life_enemy = 1
     for _ in range(8):
         Object(objects)
-    for _ in range(10):
-        Enemy(enemy_1)
+    for i in range(random.randint(2, 3)):
+        Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
     running = True
     fps = 60
+    wave = 1
     speed = 2
     clock = pygame.time.Clock()
     f1 = pygame.font.Font(None, 36)
@@ -292,10 +312,23 @@ if __name__ == '__main__':
                 running = False
             for i in atack_list:
                 if event.type == i[0]:
-                    i[2].update(i[1])
+                    i[2].update()
                     i[2].draw(screen)
                     pygame.display.flip()
         keys = pygame.key.get_pressed()
+        if len(enemy_1) == 0:
+            wave += 1
+            if wave % 2 == 0:
+                life_enemy += 1
+                for i in range(count_enemy):
+                    Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
+            else:
+                count_enemy += 1
+                damage_enemy += 1
+                for i in range(wave):
+                    Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
+            move_t = Thread(target=move, args=(enemy_1, 0.1, size, player))
+
         if keys[pygame.K_UP] or keys[pygame.K_DOWN] or keys[pygame.K_RIGHT] or keys[pygame.K_LEFT]:
             if keys[pygame.K_UP]:
                 for i in objects:
@@ -318,7 +351,6 @@ if __name__ == '__main__':
                 enemy_1.update(keys, speed)
                 experience_1.update(keys, speed)
             objects.update(keys, speed)
-        move(enemy_1, 10 / fps, size)
         screen.fill((0, 0, 255))
         objects.draw(screen)
         all_sprites.draw(screen)
@@ -334,6 +366,7 @@ if __name__ == '__main__':
                     experience_status = 0
                     improvement(screen, screen_size)
                 i.kill()
+        k()
         experience_1.draw(screen)
         region.draw(screen)
         pygame.draw.rect(screen, (0, 0, 0), (screen_size[0] - 600, 20, 500, 60), 2)
