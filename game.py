@@ -191,7 +191,7 @@ class Enemy(pygame.sprite.Sprite):
 class Atack(pygame.sprite.Sprite):
     def __init__(self, *group):
         super().__init__(*group)
-        self.image = pygame.Surface((80, 20))
+        self.image = pygame.transform.scale(pygame.image.load("data/kk.png"), (80, 20))
         self.rect = self.image.get_rect()
         self.size = self.image.get_size()
         self.rect.x = size[0] // 2 + 20
