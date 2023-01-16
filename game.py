@@ -10,11 +10,14 @@ time_atack = 1
 c1 = 1
 right = True
 left = False
-improvement_list = ["Урон увеличивается на 1", "Максимальный ОЗ увеличивается на 10%", "Получаемый урон уменьшается на 1", "Молния стреляет в случайного врага"]
+improvement_list = ["Урон увеличивается на 1", "Максимальный ОЗ увеличивается на 1", "Получаемый урон уменьшается на 1",
+                    "Молния стреляет в случайного врага", "Здровье + 1", "Увеличивается область поднятия предметов"]
 atack_list = []
 pygame.init()
-import time
-
+kills = 0
+pygame.init()
+screen_size = (800, 800)
+size = (800, 800)
 
 def improvement(screen, zize):
     pygame.draw.rect(screen, (255, 255, 255),
@@ -44,6 +47,10 @@ def improvement(screen, zize):
                         break
 
 
+def pause(screen):
+    pass
+
+
 def improvement_add(name):
     if name == "Урон увеличивается на 1":
         player.damage_k += 1
@@ -57,7 +64,11 @@ def improvement_add(name):
         atack_2 = pygame.sprite.Group()
         Atack_2(atack_2)
         atack_list.append([MYEVENTTYPE_2, 2, atack_2])
-
+    elif name == "Здровье + 1":
+         if player.life_player + 1 <= player.life_player_max:
+             player.life_player += 1
+    elif name == "Увеличивается область поднятия предметов":
+        region.update()
 
 class Improvement_btn(pygame.sprite.Sprite):
     def __init__(self, *group, name, count):
@@ -114,8 +125,9 @@ class Player(pygame.sprite.Sprite):
         self.shield = 0
         self.life_player_max = 20
         self.damage_k = 0
-        self.life_player = 20
-
+        self.life_player = 2
+        self.coords_x = screen_size[0] // 2
+        self.coords_y = screen_size[1] // 2
 
 
 class Object(pygame.sprite.Sprite):
@@ -125,8 +137,8 @@ class Object(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(pygame.image.load("data/tree2.png"), (60, 60))
         self.rect = self.image.get_rect()
         self.size = self.image.get_size()
-        self.rect.x = random.randrange(1000)
-        self.rect.y = random.randrange(1000)
+        self.rect.x = random.randrange(- 2000, 2000)
+        self.rect.y = random.randrange(- 2000, 2000)
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self, key, speed):
@@ -159,8 +171,6 @@ class Enemy(pygame.sprite.Sprite):
         y = [[size[1], size[1] + 200], [- 200, 0]]
         x2 = random.choice(x)
         y2 = random.choice(y)
-        print(x2)
-        print(y2)
         self.rect.x = float(random.randint(x2[0], x2[1]))
         self.rect.y = float(random.randint(y2[0], y2[1]))
         self.timer = 0
@@ -190,6 +200,7 @@ class Atack(pygame.sprite.Sprite):
         self.kd = 1
 
     def update(self):
+        global atack, experience_1, damage_k
         if right:
             for i in atack:
                 i.rect.x = size[0] // 2 + 20
@@ -203,6 +214,8 @@ class Atack(pygame.sprite.Sprite):
                     if i.life_enemy <= 0:
                         Experience(experience_1, coords=[i.rect.x, i.rect.y])
                         i.kill()
+                        global kills
+                        kills += 1
                     elif right:
                         i.rect.x += 10
                     else:
@@ -257,121 +270,212 @@ class Experience(pygame.sprite.Sprite):
 class Region(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        image = pygame.Surface([40, 40], pygame.SRCALPHA, 32)
+        self.region_size = 40
+        image = pygame.Surface([self.region_size, self.region_size], pygame.SRCALPHA, 32)
         self.image = image.convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = size[0] // 2
         self.rect.y = size[1] // 2
+
+    def update(self):
+        self.region_size += 2
+        image = pygame.Surface([self.region_size, self.region_size], pygame.SRCALPHA, 32)
+        self.image = image.convert_alpha()
+
+
+text = pygame.font.Font(None, 36)
+kills_record_text = pygame.font.Font(None, 36)
+wave_record_text = pygame.font.Font(None, 36)
+text = text.render("Играть", True,
+                   (200, 0, 0))
+
+
+def start_screen():
+    global text, kills_record_text, wave_record_text
+    start_screen = pygame.display.set_mode((800, 800))
+    running = True
+    fps = 60
+    clock = pygame.time.Clock()
+    start_btn = pygame.sprite.Group()
+    Start_btn(start_btn)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                for i in start_btn:
+                    if i.rect.collidepoint(event.pos):
+                        return True
+        start_screen.fill((173, 255, 47))
+        start_btn.draw(start_screen)
+        start_screen.blit(text, (350, 320))
+        start_screen.blit(wave_record_text, (300, 500))
+        start_screen.blit(kills_record_text, (450, 500))
+        clock.tick(fps)
+        pygame.display.flip()
 
 
 def k():
     move_t = Thread(target=move, args=(enemy_1, 0.1, size, player))
     move_t.start()
 
-if __name__ == '__main__':
-    pygame.display.set_caption('Игра')
-    #screen = pygame.display.set_mode((0, 0), pygame.RESIZABLE)
-    screen = pygame.display.set_mode((1000, 1000))
-    size = screen.get_size()
-    screen_size = screen.get_size()
-    all_sprites = pygame.sprite.Group()
-    objects = pygame.sprite.Group()
-    enemy_1 = pygame.sprite.Group()
-    atack = pygame.sprite.Group()
-    experience_1 = pygame.sprite.Group()
-    region = pygame.sprite.Group()
-    player = Player()
-    damage_k = 0
-    all_sprites.add(player)
-    screen.fill((0, 0, 255))
-    Atack(atack)
-    region_1 = Region()
-    region.add(region_1)
-    experience_status = 0
-    experience_status_max = 30
-    count_enemy = 3
-    damage_enemy = 1
-    life_enemy = 1
-    for _ in range(8):
-        Object(objects)
-    for i in range(random.randint(2, 3)):
-        Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
-    running = True
-    fps = 60
-    wave = 1
-    speed = 2
-    clock = pygame.time.Clock()
-    f1 = pygame.font.Font(None, 36)
-    MYEVENTTYPE_1 = pygame.USEREVENT + 0
-    pygame.time.set_timer(MYEVENTTYPE_1, 1000)
-    atack_list.append([MYEVENTTYPE_1, 1, atack])
-    while running:
-        start_time = time.time()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            for i in atack_list:
-                if event.type == i[0]:
-                    i[2].update()
-                    i[2].draw(screen)
-                    pygame.display.flip()
-        keys = pygame.key.get_pressed()
-        if len(enemy_1) == 0:
-            wave += 1
-            if wave % 2 == 0:
-                life_enemy += 1
-                for i in range(count_enemy):
-                    Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
-            else:
-                count_enemy += 1
-                damage_enemy += 1
-                for i in range(wave):
-                    Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
-            move_t = Thread(target=move, args=(enemy_1, 0.1, size, player))
 
-        if keys[pygame.K_UP] or keys[pygame.K_DOWN] or keys[pygame.K_RIGHT] or keys[pygame.K_LEFT]:
-            if keys[pygame.K_UP]:
-                for i in objects:
-                    i.rect.y += speed
-            if keys[pygame.K_DOWN]:
-                for i in objects:
-                    i.rect.y -= speed
-            if keys[pygame.K_LEFT]:
-                right = False
-                left = True
-                for i in objects:
-                    i.rect.x += speed
-            if keys[pygame.K_RIGHT]:
-                right = True
-                left = False
-                for i in objects:
-                    i.rect.x -= speed
-            c = [pygame.sprite.collide_rect(i, player) for i in objects]
-            if not any(c):
-                enemy_1.update(keys, speed)
-                experience_1.update(keys, speed)
-            objects.update(keys, speed)
+class Start_btn(pygame.sprite.Sprite):
+    def __init__(self, *group):
+        super().__init__(*group)
+        self.image = pygame.Surface((150, 70))
+        self.rect = self.image.get_rect()
+        self.rect.x = 325
+        self.rect.y = 300
+
+if __name__ == '__main__':
+    f1 = pygame.font.Font(None, 36)
+    with open("record.txt") as f:
+        a = f.read()
+        kills_record = a.split("\n")[0]
+        wave_record = a.split("\n")[1]
+        kills_record_text = kills_record_text.render("Убийства: " + kills_record, True,
+                                                    (200, 0, 0))
+        wave_record_text = wave_record_text.render("Волны :" + wave_record, True,
+                                                    (200, 0, 0))
+    if start_screen():
+        pygame.init()
+        pygame.display.set_caption('Игра')
+        #screen = pygame.display.set_mode((0, 0), pygame.RESIZABLE)
+        screen = pygame.display.set_mode((800, 800))
+        size = screen.get_size()
+        screen_size = screen.get_size()
+        all_sprites = pygame.sprite.Group()
+        objects = pygame.sprite.Group()
+        enemy_1 = pygame.sprite.Group()
+        atack = pygame.sprite.Group()
+        experience_1 = pygame.sprite.Group()
+        region = pygame.sprite.Group()
+        player = Player()
+        damage_k = 0
+        all_sprites.add(player)
         screen.fill((0, 0, 255))
-        objects.draw(screen)
-        all_sprites.draw(screen)
-        enemy_1.draw(screen)
-        text1 = f1.render('Жизни: ' + str(player.life_player), True,
-                          (100, 0, 0))
-        screen.blit(text1, (10, 10))
-        for i in experience_1:
-            if pygame.sprite.collide_rect(i, region_1):
-                experience_status += 30
-                if experience_status >= experience_status_max:
-                    experience_status_max = round(experience_status * 1.2)
-                    experience_status = 0
-                    improvement(screen, screen_size)
-                i.kill()
-        k()
-        experience_1.draw(screen)
-        region.draw(screen)
-        pygame.draw.rect(screen, (0, 0, 0), (screen_size[0] - 600, 20, 500, 60), 2)
-        pygame.draw.rect(screen, (255, 255, 255), (screen_size[0] - 598, 19, 5 * (100 * experience_status) // experience_status_max - 1, 59))
-        clock.tick(fps)
-        pygame.display.flip()
-        print("--- %s seconds ---" % (time.time() - start_time))
-    pygame.quit()
+        Atack(atack)
+        region_1 = Region()
+        region.add(region_1)
+        experience_status = 0
+        experience_status_max = 30
+        count_enemy = 3
+        damage_enemy = 1
+        life_enemy = 1
+        for _ in range(15):
+            Object(objects)
+        for i in range(random.randint(2, 3)):
+            Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
+        running = True
+        fps = 60
+        wave = 1
+        speed = 2
+        clock = pygame.time.Clock()
+        MYEVENTTYPE_1 = pygame.USEREVENT + 0
+        pygame.time.set_timer(MYEVENTTYPE_1, 1000)
+        atack_list.append([MYEVENTTYPE_1, 1, atack])
+        kills = 0
+        while running:
+            if player.life_player <= 0:
+                running = False
+                with open("record.txt") as f:
+                    a = f.read()
+                    kills_record = a.split("\n")[0]
+                    wave_record = a.split("\n")[1]
+                if wave > int(wave_record) or kills > int(kills_record):
+                    with open("record.txt", mode="w") as f:
+                        if wave > int(wave_record):
+                            wave_record = wave
+                        if kills > int(kills_record):
+                            kills_record = kills
+                        f.write(f"{kills_record}\n{wave_record}")
+                wait = True
+                game_over = pygame.font.Font(None, 36)
+                game_over = game_over.render('Игра окончена', True,
+                                  (180, 0, 0))
+                screen.blit(game_over, (310, 100))
+                wave_results = pygame.font.Font(None, 36)
+                wave_results = wave_results.render('Волны: ' + str(wave), True,
+                                  (180, 0, 0))
+                screen.blit(wave_results, (200, 300))
+                kills_results = pygame.font.Font(None, 36)
+                kills_results = kills_results.render('Убийства: ' + str(kills), True,
+                                  (180, 0, 0))
+                screen.blit(kills_results, (400, 300))
+                pygame.display.flip()
+                while wait:
+                    for event in pygame.event.get():
+                        if event.type == pygame.MOUSEBUTTONDOWN:
+                            wait = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                for i in atack_list:
+                    if event.type == i[0]:
+                        i[2].update()
+                        i[2].draw(screen)
+                        pygame.display.flip()
+            keys = pygame.key.get_pressed()
+            if len(enemy_1) == 0:
+                wave += 1
+                if wave % 2 == 0:
+                    life_enemy += 1
+                    for i in range(count_enemy):
+                        Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
+                else:
+                    count_enemy += 1
+                    damage_enemy += 1
+                    for i in range(wave):
+                        Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
+                move_t = Thread(target=move, args=(enemy_1, 0.1, size, player))
+
+            if keys[pygame.K_UP] or keys[pygame.K_DOWN] or keys[pygame.K_RIGHT] or keys[pygame.K_LEFT]:
+                if keys[pygame.K_UP] and player.coords_y + 1 <= 1000:
+                    player.coords_y += 1
+                    for i in objects:
+                        i.rect.y += speed
+                if keys[pygame.K_DOWN] and player.coords_y - 1 >= - 1000:
+                    player.coords_y -= 1
+                    for i in objects:
+                        i.rect.y -= speed
+                if keys[pygame.K_LEFT] and player.coords_x - 1 >= - 1000:
+                    player.coords_x -= 1
+                    right = False
+                    left = True
+                    for i in objects:
+                        i.rect.x += speed
+                if keys[pygame.K_RIGHT] and player.coords_x + 1 <= 1000:
+                    player.coords_x += 1
+                    right = True
+                    left = False
+                    for i in objects:
+                        i.rect.x -= speed
+                c = [pygame.sprite.collide_rect(i, player) for i in objects]
+                if not any(c) and - 999 < player.coords_x < 999 and - 999 < player.coords_y < 999:
+                    enemy_1.update(keys, speed)
+                    experience_1.update(keys, speed)
+                objects.update(keys, speed)
+            screen.fill((173, 255, 47))
+            objects.draw(screen)
+            all_sprites.draw(screen)
+            enemy_1.draw(screen)
+            text1 = f1.render('Жизни: ' + str(player.life_player), True, (100, 0, 0))
+            screen.blit(text1, (30, 30))
+            for i in experience_1:
+                if pygame.sprite.collide_rect(i, region_1):
+                    experience_status += 30
+                    if experience_status >= experience_status_max:
+                        experience_status_max = round(experience_status * 1.2)
+                        experience_status = 0
+                        improvement(screen, screen_size)
+                    i.kill()
+            k()
+            experience_1.draw(screen)
+            region.draw(screen)
+            pygame.draw.rect(screen, (0, 0, 0), (screen_size[0] - 600, 20, 500, 60), 2)
+            pygame.draw.rect(screen, (255, 255, 255), (screen_size[0] - 598, 19, 5 * (100 * experience_status) // experience_status_max - 1, 59))
+            clock.tick(fps)
+            pygame.display.flip()
+        pygame.display.quit()
+
