@@ -125,7 +125,7 @@ class Player(pygame.sprite.Sprite):
         self.shield = 0
         self.life_player_max = 20
         self.damage_k = 0
-        self.life_player = 2
+        self.life_player = 20
         self.coords_x = screen_size[0] // 2
         self.coords_y = screen_size[1] // 2
 
