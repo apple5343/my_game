@@ -5,7 +5,6 @@ import random
 import time
 import math
 from threading import *
-from numba import jit
 time_atack = 1
 c1 = 1
 right = True
