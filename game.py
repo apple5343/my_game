@@ -12,6 +12,9 @@ right = True
 left = False
 improvement_list = ["Урон увеличивается на 1", "Максимальный ОЗ увеличивается на 1", "Получаемый урон уменьшается на 1",
                     "Молния стреляет в случайного врага", "Здровье + 1", "Увеличивается область поднятия предметов"]
+improvement_dict = {"Урон увеличивается на 1" : "damage", "Максимальный ОЗ увеличивается на 1" : "health_max",
+                    "Получаемый урон уменьшается на 1" : "sheild", "Молния стреляет в случайного врага" : "lightning_img",
+                    "Здровье + 1" : "health", "Увеличивается область поднятия предметов" : "region"}
 atack_list = []
 pygame.init()
 kills = 0
@@ -26,13 +29,9 @@ def improvement(screen, zize):
     improvement_list_new = random.sample(improvement_list, 3)
     text = []
     for i in range(3):
-        Improvement_btn(btns, name=improvement_list_new[i], count=i)
+        Improvement_btn(btns, name=improvement_list_new[i], count=i, image=improvement_list[i])
         text.append((size[0] // 2 - 400 + i * 270, size[1] // 2 - 120 + 5))
     btns.draw(screen)
-    for i in range(3):
-        font = pygame.font.SysFont(None, 20)
-        img = font.render(improvement_list_new[i], True, (255, 0, 0))
-        screen.blit(img, text[i])
     pygame.display.flip()
     run = True
     while run:
@@ -48,8 +47,19 @@ def improvement(screen, zize):
 
 
 def pause(screen):
-    pass
-
+    pasuse_t = pygame.font.Font(None, 36)
+    pause_t = pasuse_t.render("Пауза", True,
+                       (255, 255, 255))
+    screen.blit(pause_t, (380, 200))
+    pygame.display.flip()
+    pauseIsRunnin = True
+    while pauseIsRunnin:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pauseIsRunnin = False
 
 def improvement_add(name):
     if name == "Урон увеличивается на 1":
@@ -71,9 +81,10 @@ def improvement_add(name):
         region.update()
 
 class Improvement_btn(pygame.sprite.Sprite):
-    def __init__(self, *group, name, count):
+    def __init__(self, *group, name, count, image):
         super().__init__(*group)
-        self.image = pygame.Surface((250, 300))
+        #self.image = pygame.Surface((250, 300))
+        self.image = pygame.transform.scale(pygame.image.load("data/" + improvement_dict[name] + ".png"), (200, 300))
         self.rect = self.image.get_rect()
         self.size = self.image.get_size()
         self.rect.x = size[0] // 2 - 400 + count * 270
@@ -360,12 +371,12 @@ if __name__ == '__main__':
         region.add(region_1)
         experience_status = 0
         experience_status_max = 30
-        count_enemy = 3
+        count_enemy = 5
         damage_enemy = 1
         life_enemy = 1
         for _ in range(15):
             Object(objects)
-        for i in range(random.randint(2, 3)):
+        for i in range(random.randint(4, 6)):
             Enemy(enemy_1, damage=damage_enemy, life=life_enemy)
         running = True
         fps = 60
@@ -411,6 +422,9 @@ if __name__ == '__main__':
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        pause(screen)
                 for i in atack_list:
                     if event.type == i[0]:
                         i[2].update()
@@ -464,7 +478,7 @@ if __name__ == '__main__':
             screen.blit(text1, (30, 30))
             for i in experience_1:
                 if pygame.sprite.collide_rect(i, region_1):
-                    experience_status += 30
+                    experience_status += 10
                     if experience_status >= experience_status_max:
                         experience_status_max = round(experience_status * 1.2)
                         experience_status = 0
